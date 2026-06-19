@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  node1:
+    build: .
+    container_name: pycoin-node1
+    ports:
+      - "5000:5000"
+    volumes:
+      - node1_data:/app/data
+    command: ["--host", "0.0.0.0", "--port", "5000"]
+    networks:
+      - pycoin
+
+  node2:
+    build: .
+    container_name: pycoin-node2
+    ports:
+      - "5001:5001"
+    volumes:
+      - node2_data:/app/data
+    command: ["--host", "0.0.0.0", "--port", "5001", "--peer", "node1:5000"]
+    depends_on:
+      - node1
+    networks:
+      - pycoin
+
+networks:
+  pycoin:
+    driver: bridge
+
+volumes:
+  node1_data:
+  node2_data:

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Block #{{ block.index }} — PyCoin{% endblock %}
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">Explorer</a></li>
+    <li class="breadcrumb-item active">Block #{{ block.index }}</li>
+  </ol>
+</nav>
+
+<h5 class="mb-3">Block <span class="block-num">#{{ block.index }}</span></h5>
+
+<div class="stat-card p-3 mb-4">
+  <div class="row g-2">
+    {% set fields = [
+      ("Hash", block.hash),
+      ("Previous Hash", block.previous_hash),
+      ("Timestamp", block.timestamp | int),
+      ("Nonce", block.nonce),
+      ("Difficulty", block.difficulty),
+      ("Transactions", block.transactions | length),
+    ] %}
+    {% for label, value in fields %}
+    <div class="col-md-2 text-secondary small">{{ label }}</div>
+    <div class="col-md-10 hash" style="{% if label not in ('Hash','Previous Hash') %}font-family:inherit;{% endif %}">
+      {% if label == "Previous Hash" %}<a class="hash" href="/block/{{ value }}">{{ value }}</a>
+      {% else %}{{ value }}{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<h6 class="text-secondary mb-2">Transactions</h6>
+<div class="stat-card">
+  <table class="table table-sm mb-0">
+    <thead><tr><th>Tx ID</th><th>Sender</th><th>Recipient</th><th>Amount</th><th>Fee</th></tr></thead>
+    <tbody>
+    {% for tx in block.transactions %}
+    <tr>
+      <td><a class="hash" href="/tx/{{ tx.tx_id() }}">{{ tx.tx_id()[:16] }}…</a></td>
+      <td class="text-secondary" style="font-size:.8rem;">
+        {% if tx.sender == "COINBASE" %}<span class="badge bg-warning text-dark">Coinbase</span>
+        {% else %}{{ tx.sender[:20] }}…{% endif %}
+      </td>
+      <td class="text-secondary" style="font-size:.8rem;"><a href="/address/{{ tx.recipient }}">{{ tx.recipient[:20] }}…</a></td>
+      <td>{{ "%.6f"|format(tx.amount) }} PYC</td>
+      <td class="text-secondary">{{ tx.fee }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 """
-Block and Blockchain: Proof-of-Work chain.
+Block and Blockchain: Proof-of-Work chain with supply cap and halving schedule.
 """
 
 import hashlib
@@ -10,10 +10,25 @@ from typing import List
 from .transaction import Transaction
 from .wallet import address_from_public_key_hex
 
-MINING_REWARD = 50.0
-INITIAL_DIFFICULTY = 4       # leading zeros required in hex hash
-DIFFICULTY_ADJUSTMENT = 10   # adjust every N blocks
-TARGET_BLOCK_TIME = 60       # seconds per block target
+# -----------------------------------------------------------------------
+# Coin economics (mirrors Bitcoin's supply model)
+# -----------------------------------------------------------------------
+TOTAL_SUPPLY = 21_000_000.0       # maximum coins ever
+INITIAL_REWARD = 50.0             # coins per block at genesis
+HALVING_INTERVAL = 210_000        # blocks between halvings
+MINING_REWARD = INITIAL_REWARD    # kept as alias for tests / external code
+
+INITIAL_DIFFICULTY = 4
+DIFFICULTY_ADJUSTMENT = 10        # adjust every N blocks
+TARGET_BLOCK_TIME = 60            # seconds per block target
+
+
+def get_block_reward(block_height: int) -> float:
+    """Return the coinbase reward for a given block height (halving every 210,000 blocks)."""
+    halvings = block_height // HALVING_INTERVAL
+    if halvings >= 64:
+        return 0.0
+    return INITIAL_REWARD / (2 ** halvings)
 
 
 class Block:
@@ -41,14 +56,17 @@ class Block:
 
     def _header(self) -> str:
         tx_ids = [tx.tx_id() for tx in self.transactions]
-        return json.dumps({
-            "index": self.index,
-            "previous_hash": self.previous_hash,
-            "timestamp": self.timestamp,
-            "nonce": self.nonce,
-            "tx_ids": tx_ids,
-            "difficulty": self.difficulty,
-        }, sort_keys=True)
+        return json.dumps(
+            {
+                "index": self.index,
+                "previous_hash": self.previous_hash,
+                "timestamp": self.timestamp,
+                "nonce": self.nonce,
+                "tx_ids": tx_ids,
+                "difficulty": self.difficulty,
+            },
+            sort_keys=True,
+        )
 
     def _compute_hash(self) -> str:
         return hashlib.sha256(self._header().encode()).hexdigest()
@@ -61,12 +79,27 @@ class Block:
     # ------------------------------------------------------------------
 
     def mine(self):
-        """Increment nonce until hash satisfies difficulty."""
         self.nonce = 0
         self.hash = self._compute_hash()
         while not self._meets_difficulty(self.hash):
             self.nonce += 1
             self.hash = self._compute_hash()
+
+    # ------------------------------------------------------------------
+    # Stats helpers
+    # ------------------------------------------------------------------
+
+    @property
+    def total_fees(self) -> float:
+        return sum(tx.fee for tx in self.transactions if tx.sender != "COINBASE")
+
+    @property
+    def miner_address(self) -> str:
+        """Address that received the coinbase reward."""
+        for tx in self.transactions:
+            if tx.sender == "COINBASE":
+                return tx.recipient
+        return ""
 
     # ------------------------------------------------------------------
     # Validation
@@ -76,6 +109,12 @@ class Block:
         if self.hash != self._compute_hash():
             return False
         if not self._meets_difficulty(self.hash):
+            return False
+        coinbases = [tx for tx in self.transactions if tx.sender == "COINBASE"]
+        if len(coinbases) != 1:
+            return False
+        expected_reward = get_block_reward(self.index) + self.total_fees
+        if coinbases[0].amount > expected_reward + 1e-9:
             return False
         for tx in self.transactions:
             if not tx.is_valid():
@@ -135,13 +174,24 @@ class Blockchain:
     def last_block(self) -> Block:
         return self.chain[-1]
 
+    @property
+    def height(self) -> int:
+        return len(self.chain) - 1
+
+    @property
+    def total_mined(self) -> float:
+        total = 0.0
+        for block in self.chain:
+            for tx in block.transactions:
+                if tx.sender == "COINBASE":
+                    total += tx.amount
+        return total
+
     def _current_difficulty(self) -> int:
         if len(self.chain) < DIFFICULTY_ADJUSTMENT:
             return INITIAL_DIFFICULTY
         recent = self.chain[-DIFFICULTY_ADJUSTMENT:]
-        elapsed = recent[-1].timestamp - recent[0].timestamp
-        if elapsed == 0:
-            elapsed = 1
+        elapsed = recent[-1].timestamp - recent[0].timestamp or 1
         actual_per_block = elapsed / DIFFICULTY_ADJUSTMENT
         difficulty = self.last_block.difficulty
         if actual_per_block < TARGET_BLOCK_TIME / 2:
@@ -158,21 +208,22 @@ class Blockchain:
         if not tx.is_valid():
             return False
         if tx.sender != "COINBASE":
-            # Sender field is the public key hex; resolve to address for balance lookup.
             sender_address = address_from_public_key_hex(tx.sender)
-            if self.get_balance(sender_address) < tx.amount:
+            if self.get_balance(sender_address) < tx.amount + tx.fee:
                 return False
         self.pending_transactions.append(tx)
         return True
 
     def mine_pending_transactions(self, miner_address: str) -> Block:
-        """Mine a new block with pending transactions; pay the miner."""
-        reward_tx = Transaction.coinbase(miner_address, MINING_REWARD)
+        fees = sum(tx.fee for tx in self.pending_transactions)
+        next_index = len(self.chain)
+        reward = get_block_reward(next_index) + fees
+        reward_tx = Transaction.coinbase(miner_address, reward)
         txs = [reward_tx] + list(self.pending_transactions)
         self.pending_transactions = []
 
         block = Block(
-            index=len(self.chain),
+            index=next_index,
             transactions=txs,
             previous_hash=self.last_block.hash,
             difficulty=self._current_difficulty(),
@@ -182,10 +233,6 @@ class Blockchain:
         return block
 
     def get_balance(self, identifier: str) -> float:
-        """
-        Balance for an address.  Sender fields in transactions store
-        the raw public-key hex, so we normalise those to addresses on the fly.
-        """
         balance = 0.0
         for block in self.chain:
             for tx in block.transactions:
@@ -198,8 +245,40 @@ class Blockchain:
                     except Exception:
                         pass
                 if sender_id == identifier:
-                    balance -= tx.amount
+                    balance -= tx.amount + tx.fee
         return balance
+
+    def get_block_by_hash(self, block_hash: str) -> Block | None:
+        for block in self.chain:
+            if block.hash == block_hash:
+                return block
+        return None
+
+    def get_block_by_height(self, height: int) -> Block | None:
+        if 0 <= height < len(self.chain):
+            return self.chain[height]
+        return None
+
+    def get_transaction(self, tx_id: str) -> tuple[Transaction | None, Block | None]:
+        for block in self.chain:
+            for tx in block.transactions:
+                if tx.tx_id() == tx_id:
+                    return tx, block
+        return None, None
+
+    def get_address_transactions(self, address: str) -> list:
+        result = []
+        for block in self.chain:
+            for tx in block.transactions:
+                sender_addr = tx.sender
+                if sender_addr not in ("COINBASE",):
+                    try:
+                        sender_addr = address_from_public_key_hex(sender_addr)
+                    except Exception:
+                        pass
+                if sender_addr == address or tx.recipient == address:
+                    result.append((tx, block))
+        return result
 
     def is_valid_chain(self) -> bool:
         for i in range(1, len(self.chain)):

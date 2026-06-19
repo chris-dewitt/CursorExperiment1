@@ -1,0 +1,28 @@
+{
+  "name": "PyCoin",
+  "ticker": "PYC",
+  "description": "An open-source proof-of-work cryptocurrency built on Python.",
+  "website": "",
+  "whitepaper": "WHITEPAPER.md",
+  "source_code": "https://github.com/chris-dewitt/CursorExperiment1",
+  "consensus": "Proof of Work (SHA-256)",
+  "curve": "secp256k1",
+  "address_format": "Base58Check (version byte 0x00, identical to Bitcoin P2PKH)",
+  "hd_wallet": "BIP39 / BIP32 master key derivation",
+  "total_supply": 21000000,
+  "initial_block_reward": 50,
+  "halving_interval_blocks": 210000,
+  "target_block_time_seconds": 60,
+  "difficulty_adjustment_blocks": 10,
+  "genesis_block_date": null,
+  "decimal_places": 8,
+  "smallest_unit": "satoshi",
+  "api": {
+    "rest": "HTTP REST on port 5000",
+    "rpc": "JSON-RPC 2.0 at POST /rpc (Bitcoin-compatible subset)"
+  },
+  "networks": {
+    "mainnet": {"port": 5000},
+    "testnet": {"port": 5001}
+  }
+}

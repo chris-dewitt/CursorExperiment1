@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}API Docs — PyCoin{% endblock %}
+{% block content %}
+
+<h5 class="mb-4">PyCoin Node API Reference</h5>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <h6 class="text-secondary">REST API</h6>
+    <div class="stat-card p-3">
+      {% set endpoints = [
+        ("GET", "/chain", "Full blockchain (JSON)"),
+        ("GET", "/pending", "Pending transactions"),
+        ("GET", "/balance/&lt;address&gt;", "Address balance"),
+        ("GET", "/wallet", "Node wallet info"),
+        ("GET", "/peers", "Connected peers"),
+        ("POST", "/transaction/new", "Submit signed transaction"),
+        ("POST", "/mine", "Mine pending transactions"),
+        ("POST", "/peers/register", "Register a peer"),
+      ] %}
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+        <tbody>
+        {% for method, path, desc in endpoints %}
+        <tr>
+          <td><span class="badge {% if method == 'GET' %}bg-success{% else %}bg-primary{% endif %}">{{ method }}</span></td>
+          <td style="font-family:monospace;font-size:.85em;">{{ path }}</td>
+          <td class="text-secondary small">{{ desc }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <h6 class="text-secondary">JSON-RPC 2.0 — POST /rpc</h6>
+    <div class="stat-card p-3">
+      {% set rpc_methods = [
+        ("getblockchaininfo", "[]", "Chain summary"),
+        ("getblockcount", "[]", "Current height"),
+        ("getblockhash", "[height]", "Block hash at height"),
+        ("getblock", "[hash]", "Block by hash"),
+        ("gettransaction", "[txid]", "Transaction by id"),
+        ("getbalance", "[address]", "Address balance"),
+        ("sendrawtransaction", "[tx_b64]", "Broadcast transaction"),
+        ("getmininginfo", "[]", "Mining statistics"),
+        ("getnewaddress", "[]", "Generate new address + mnemonic"),
+      ] %}
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Method</th><th>Params</th><th>Returns</th></tr></thead>
+        <tbody>
+        {% for method, params, desc in rpc_methods %}
+        <tr>
+          <td style="font-family:monospace;font-size:.8em;">{{ method }}</td>
+          <td style="font-family:monospace;font-size:.8em;color:#8b949e;">{{ params }}</td>
+          <td class="text-secondary small">{{ desc }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stat-card p-3 mt-3">
+      <div class="text-secondary small mb-2">Example JSON-RPC request</div>
+      <pre style="background:#0d1117;padding:10px;border-radius:4px;font-size:.8em;color:#cdd9e5;margin:0;">{
+  "jsonrpc": "2.0",
+  "method": "getblockchaininfo",
+  "params": [],
+  "id": 1
+}</pre>
+    </div>
+  </div>
+</div>
+{% endblock %}

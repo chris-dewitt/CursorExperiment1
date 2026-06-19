@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Transaction — PyCoin{% endblock %}
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">Explorer</a></li>
+    <li class="breadcrumb-item active">Transaction</li>
+  </ol>
+</nav>
+
+<h5 class="mb-3">Transaction</h5>
+
+<div class="stat-card p-3 mb-4">
+  <div class="row g-2">
+    {% set fields = [
+      ("Tx ID", tx_id),
+      ("Block", block_height),
+      ("Block Hash", block_hash),
+      ("Confirmations", confirmations),
+      ("Timestamp", timestamp | int),
+      ("Sender", sender),
+      ("Recipient", recipient),
+      ("Amount", amount ~ " PYC"),
+      ("Fee", fee ~ " PYC"),
+    ] %}
+    {% for label, value in fields %}
+    <div class="col-md-2 text-secondary small">{{ label }}</div>
+    <div class="col-md-10" style="{% if label in ('Tx ID','Block Hash','Sender') %}font-family:monospace;font-size:.85em;word-break:break-all;color:#58a6ff;{% endif %}">
+      {% if label == "Block Hash" %}<a class="hash" href="/block/{{ value }}">{{ value }}</a>
+      {% elif label == "Recipient" %}<a class="hash" href="/address/{{ value }}">{{ value }}</a>
+      {% elif label == "Sender" and value == "COINBASE" %}<span class="badge bg-warning text-dark">Coinbase</span>
+      {% else %}{{ value }}{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
