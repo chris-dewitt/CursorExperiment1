@@ -36,7 +36,7 @@ def _fernet_key_from_password(password: str, salt: bytes) -> bytes:
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
-        iterations=480_000,
+        iterations=600_000,
     )
     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 

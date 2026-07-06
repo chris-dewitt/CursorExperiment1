@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Block #{{ block.index }} — PyCoin{% endblock %}
+{% block title %}Block #{{ block.index }} — Enigma{% endblock %}
 {% block content %}
 
 <nav aria-label="breadcrumb" class="mb-3">
@@ -40,11 +40,11 @@
     <tr>
       <td><a class="hash" href="/tx/{{ tx.tx_id() }}">{{ tx.tx_id()[:16] }}…</a></td>
       <td class="text-secondary" style="font-size:.8rem;">
-        {% if tx.sender == "COINBASE" %}<span class="badge bg-warning text-dark">Coinbase</span>
+        {% if tx.sender == "COINBASE" %}<span class="badge" style="background:var(--enigma-purple);">Coinbase</span>
         {% else %}{{ tx.sender[:20] }}…{% endif %}
       </td>
       <td class="text-secondary" style="font-size:.8rem;"><a href="/address/{{ tx.recipient }}">{{ tx.recipient[:20] }}…</a></td>
-      <td>{{ "%.6f"|format(tx.amount) }} PYC</td>
+      <td>{{ "%.6f"|format(tx.amount) }} ENIG</td>
       <td class="text-secondary">{{ tx.fee }}</td>
     </tr>
     {% endfor %}

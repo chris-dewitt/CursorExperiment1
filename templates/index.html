@@ -1,6 +1,35 @@
 {% extends "base.html" %}
-{% block title %}PyCoin — Block Explorer{% endblock %}
+{% block title %}Enigma — Block Explorer{% endblock %}
 {% block content %}
+
+<div class="compute-card stat-card p-3 mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <h6 class="mb-0 text-uppercase" style="letter-spacing:1px;color:var(--enigma-violet);">Compute Market</h6>
+    <span class="badge status-{{ stats.compute.status }}">{{ stats.compute.status | upper }}</span>
+  </div>
+  <p class="text-secondary small mb-3">{{ stats.compute.tagline }}</p>
+  <div class="row g-3">
+    <div class="col-6 col-md-3">
+      <div class="text-secondary small">Supply</div>
+      <div class="fw-bold">{{ stats.compute.supply_score }}</div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="text-secondary small">Demand</div>
+      <div class="fw-bold">{{ stats.compute.demand_score }}</div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="text-secondary small">Ratio</div>
+      <div class="fw-bold">{{ stats.compute.ratio }}×</div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="text-secondary small">Suggested Fee</div>
+      <div class="fw-bold">{{ stats.compute.suggested_fee }} ENIG</div>
+    </div>
+  </div>
+  <div class="mt-2">
+    <a href="/compute" class="small" style="color:var(--enigma-cyan);">Full compute dashboard →</a>
+  </div>
+</div>
 
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
@@ -11,8 +40,8 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="stat-card p-3">
-      <div class="text-secondary small">Coins Mined</div>
-      <div class="fs-4 fw-bold">{{ "%.2f"|format(stats.total_mined) }} <span class="fs-6 text-secondary">/ 21M PYC</span></div>
+      <div class="text-secondary small">ENIG Mined</div>
+      <div class="fs-4 fw-bold">{{ "%.2f"|format(stats.total_mined) }} <span class="fs-6 text-secondary">/ 21M</span></div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -57,9 +86,9 @@
         {% for tx in stats.recent_txs %}
         <tr>
           <td><a class="hash" href="/tx/{{ tx.tx_id }}">{{ tx.tx_id[:14] }}…</a></td>
-          <td>{{ "%.4f"|format(tx.amount) }} PYC</td>
+          <td>{{ "%.4f"|format(tx.amount) }} ENIG</td>
           <td class="text-secondary" style="font-size:.8rem;">
-            {% if tx.sender == "COINBASE" %}<span class="badge bg-warning text-dark">Coinbase</span>
+            {% if tx.sender == "COINBASE" %}<span class="badge" style="background:var(--enigma-purple);">Coinbase</span>
             {% else %}{{ tx.sender_short }}{% endif %}
           </td>
         </tr>

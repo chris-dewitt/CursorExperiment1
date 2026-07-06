@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PyCoin Wallet CLI
+Enigma Wallet CLI
 
 Commands:
   new                       Generate a new wallet (prints mnemonic — store it safely)
@@ -9,6 +9,7 @@ Commands:
   balance <address>         Check balance on a running node
   send <wallet_file>        Sign and broadcast a transaction
   mine                      Ask the node to mine the next block
+  compute                   Show live compute supply/demand market stats
 
 Examples:
   python wallet_cli.py new --save alice.wallet
@@ -17,6 +18,7 @@ Examples:
   python wallet_cli.py balance 1A2B3C... --node localhost:5000
   python wallet_cli.py send alice.wallet --to 1B2C3D... --amount 10 --fee 0.001 --node localhost:5000
   python wallet_cli.py mine --node localhost:5000
+  python wallet_cli.py compute --node localhost:5000
 """
 
 import argparse
@@ -26,13 +28,13 @@ import sys
 
 import requests
 
-from pycoin.wallet import Wallet
-from pycoin.transaction import Transaction
+from enigma.wallet import Wallet
+from enigma.transaction import Transaction
 
 
 def cmd_new(args):
     w = Wallet.new_with_mnemonic()
-    print("\n=== New PyCoin Wallet ===")
+    print("\n=== New Enigma Wallet ===")
     print(f"Address   : {w.address}")
     print(f"Public Key: {w.public_key_hex}")
     print(f"\n⚠  Recovery Phrase (store offline — never share!):")
@@ -74,7 +76,7 @@ def cmd_balance(args):
     try:
         resp = requests.get(url, timeout=5)
         data = resp.json()
-        print(f"{data['balance']:.6f} PYC  ({args.address})")
+        print(f"{data['balance']:.6f} ENIG  ({args.address})")
     except requests.RequestException as exc:
         print(f"Error contacting node: {exc}", file=sys.stderr)
         sys.exit(1)
@@ -109,6 +111,26 @@ def cmd_mine(args):
         sys.exit(1)
 
 
+def cmd_compute(args):
+    url = f"http://{args.node}/compute/stats"
+    try:
+        resp = requests.get(url, timeout=5)
+        data = resp.json()
+        print("\n=== Enigma Compute Market ===")
+        print(f"Status         : {data['status'].upper()}")
+        print(f"Supply score   : {data['supply_score']}")
+        print(f"Demand score   : {data['demand_score']}")
+        print(f"Demand/Supply  : {data['ratio']}x")
+        print(f"Suggested fee  : {data['suggested_fee']} ENIG")
+        print(f"Hashrate est.  : {data['network_hashrate_estimate']:,.0f} H/s")
+        print(f"Active peers   : {data['active_peers']}")
+        print(f"Mempool        : {data['mempool_size']} txs")
+        print(f"\n{data['tagline']}\n")
+    except requests.RequestException as exc:
+        print(f"Error contacting node: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
 def _load_wallet(path: str) -> Wallet:
     try:
         with open(path) as f:
@@ -128,7 +150,7 @@ def _load_wallet(path: str) -> Wallet:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="PyCoin wallet CLI",
+        description="Enigma wallet CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -149,7 +171,7 @@ def main():
     p_bal.add_argument("address")
     p_bal.add_argument("--node", default="localhost:5000", metavar="HOST:PORT")
 
-    p_send = sub.add_parser("send", help="Send PYC")
+    p_send = sub.add_parser("send", help="Send ENIG")
     p_send.add_argument("wallet_file")
     p_send.add_argument("--to", required=True, metavar="ADDRESS")
     p_send.add_argument("--amount", type=float, required=True)
@@ -159,6 +181,9 @@ def main():
     p_mine = sub.add_parser("mine", help="Mine the next block on a running node")
     p_mine.add_argument("--node", default="localhost:5000", metavar="HOST:PORT")
 
+    p_compute = sub.add_parser("compute", help="Show compute supply/demand market")
+    p_compute.add_argument("--node", default="localhost:5000", metavar="HOST:PORT")
+
     args = parser.parse_args()
     dispatch = {
         "new": cmd_new,
@@ -167,6 +192,7 @@ def main():
         "balance": cmd_balance,
         "send": cmd_send,
         "mine": cmd_mine,
+        "compute": cmd_compute,
     }
     dispatch[args.command](args)
 

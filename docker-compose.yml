@@ -3,18 +3,18 @@ version: "3.9"
 services:
   node1:
     build: .
-    container_name: pycoin-node1
+    container_name: enigma-node1
     ports:
       - "5000:5000"
     volumes:
       - node1_data:/app/data
     command: ["--host", "0.0.0.0", "--port", "5000"]
     networks:
-      - pycoin
+      - enigma
 
   node2:
     build: .
-    container_name: pycoin-node2
+    container_name: enigma-node2
     ports:
       - "5001:5001"
     volumes:
@@ -23,10 +23,10 @@ services:
     depends_on:
       - node1
     networks:
-      - pycoin
+      - enigma
 
 networks:
-  pycoin:
+  enigma:
     driver: bridge
 
 volumes:

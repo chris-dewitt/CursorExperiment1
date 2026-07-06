@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}API Docs — PyCoin{% endblock %}
+{% block title %}API Docs — Enigma{% endblock %}
 {% block content %}
 
-<h5 class="mb-4">PyCoin Node API Reference</h5>
+<h5 class="mb-4">Enigma Node API Reference</h5>
 
 <div class="row g-4">
   <div class="col-lg-6">
@@ -14,6 +14,8 @@
         ("GET", "/balance/&lt;address&gt;", "Address balance"),
         ("GET", "/wallet", "Node wallet info"),
         ("GET", "/peers", "Connected peers"),
+        ("GET", "/compute", "Compute market dashboard"),
+        ("GET", "/compute/stats", "Compute supply/demand JSON"),
         ("POST", "/transaction/new", "Submit signed transaction"),
         ("POST", "/mine", "Mine pending transactions"),
         ("POST", "/peers/register", "Register a peer"),
@@ -37,14 +39,15 @@
     <h6 class="text-secondary">JSON-RPC 2.0 — POST /rpc</h6>
     <div class="stat-card p-3">
       {% set rpc_methods = [
-        ("getblockchaininfo", "[]", "Chain summary"),
+        ("getblockchaininfo", "[]", "Chain + compute market summary"),
         ("getblockcount", "[]", "Current height"),
         ("getblockhash", "[height]", "Block hash at height"),
         ("getblock", "[hash]", "Block by hash"),
         ("gettransaction", "[txid]", "Transaction by id"),
         ("getbalance", "[address]", "Address balance"),
         ("sendrawtransaction", "[tx_b64]", "Broadcast transaction"),
-        ("getmininginfo", "[]", "Mining statistics"),
+        ("getmininginfo", "[]", "Mining + compute metrics"),
+        ("getcomputeinfo", "[]", "Full compute market snapshot"),
         ("getnewaddress", "[]", "Generate new address + mnemonic"),
       ] %}
       <table class="table table-sm mb-0">
@@ -63,9 +66,9 @@
 
     <div class="stat-card p-3 mt-3">
       <div class="text-secondary small mb-2">Example JSON-RPC request</div>
-      <pre style="background:#0d1117;padding:10px;border-radius:4px;font-size:.8em;color:#cdd9e5;margin:0;">{
+      <pre style="background:var(--enigma-bg);padding:10px;border-radius:4px;font-size:.8em;color:#cdd9e5;margin:0;">{
   "jsonrpc": "2.0",
-  "method": "getblockchaininfo",
+  "method": "getcomputeinfo",
   "params": [],
   "id": 1
 }</pre>

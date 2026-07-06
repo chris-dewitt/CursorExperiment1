@@ -1,5 +1,5 @@
 """
-PyCoin node entry point.
+Enigma node entry point.
 
 Usage:
     python main.py [--host HOST] [--port PORT] [--peer HOST:PORT] [--data-dir DIR]
@@ -13,11 +13,11 @@ Examples:
 """
 
 import argparse
-from pycoin.node import Node
+from enigma.node import Node
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PyCoin node")
+    parser = argparse.ArgumentParser(description="Enigma compute network node")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--peer", action="append", default=[], metavar="HOST:PORT",
@@ -27,13 +27,14 @@ def main():
     args = parser.parse_args()
 
     node = Node(host=args.host, port=args.port, data_dir=args.data_dir)
-    print(f"[PyCoin] Node starting on port {args.port}")
-    print(f"[PyCoin] Wallet address : {node.wallet.address}")
-    print(f"[PyCoin] Data directory : {args.data_dir}")
-    print(f"[PyCoin] Block explorer : http://localhost:{args.port}/")
+    print(f"[Enigma] Node starting on port {args.port}")
+    print(f"[Enigma] Wallet address : {node.wallet.address}")
+    print(f"[Enigma] Data directory : {args.data_dir}")
+    print(f"[Enigma] Block explorer : http://localhost:{args.port}/")
+    print(f"[Enigma] Compute market : http://localhost:{args.port}/compute")
 
     for peer in args.peer:
-        print(f"[PyCoin] Connecting to peer {peer}")
+        print(f"[Enigma] Connecting to peer {peer}")
         node.connect_to_peer(peer)
 
     node.run()
