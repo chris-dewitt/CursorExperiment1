@@ -15,6 +15,7 @@ from .transaction import Transaction
 from .wallet import Wallet, address_from_public_key_hex
 from .storage import save_chain, load_chain
 from .rpc import rpc_bp, init_rpc
+from .compute import compute_market_snapshot
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _TEMPLATE_DIR = os.path.join(_HERE, "..", "templates")
@@ -42,7 +43,7 @@ class Node:
         self.app = Flask(__name__, template_folder=_TEMPLATE_DIR)
         self._register_routes()
 
-        init_rpc(self.blockchain, self.wallet)
+        init_rpc(self.blockchain, self.wallet, lambda: len(self.peers) + 1)
         self.app.register_blueprint(rpc_bp)
 
     # ------------------------------------------------------------------
@@ -96,6 +97,7 @@ class Node:
             "pending_txs": len(bc.pending_transactions),
             "recent_blocks": recent_blocks,
             "recent_txs": recent_txs[:20],
+            "compute": compute_market_snapshot(bc, len(self.peers) + 1).to_dict(),
         }
 
     # ------------------------------------------------------------------
@@ -154,8 +156,9 @@ class Node:
             if request.accept_mimetypes.best_match(["text/html", "application/json"]) == "application/json":
                 return jsonify(self.wallet.to_dict()), 200
             balance = self.blockchain.get_balance(self.wallet.address)
+            market = compute_market_snapshot(self.blockchain, len(self.peers) + 1)
             return render_template("wallet.html", wallet=self.wallet, balance=balance,
-                                   flash_msg=None, flash_type=None)
+                                   market=market, flash_msg=None, flash_type=None)
 
         @app.route("/send", methods=["POST"])
         def send():
@@ -170,9 +173,10 @@ class Node:
             self._save()
             self._broadcast_transaction(tx)
             balance = self.blockchain.get_balance(self.wallet.address)
+            market = compute_market_snapshot(self.blockchain, len(self.peers) + 1)
             msg = f"Transaction {tx.tx_id()[:16]}… submitted." if ok else "Transaction rejected (insufficient balance or invalid)."
             return render_template("wallet.html", wallet=self.wallet, balance=balance,
-                                   flash_msg=msg, flash_type="success" if ok else "danger")
+                                   market=market, flash_msg=msg, flash_type="success" if ok else "danger")
 
         @app.route("/search")
         def search():
@@ -191,6 +195,18 @@ class Node:
         @app.route("/docs")
         def docs():
             return render_template("docs.html")
+
+        @app.route("/compute", methods=["GET"])
+        def compute_market():
+            snapshot = compute_market_snapshot(self.blockchain, len(self.peers) + 1)
+            if request.accept_mimetypes.best_match(["text/html", "application/json"]) == "application/json":
+                return jsonify(snapshot.to_dict()), 200
+            return render_template("compute.html", market=snapshot)
+
+        @app.route("/compute/stats", methods=["GET"])
+        def compute_stats():
+            snapshot = compute_market_snapshot(self.blockchain, len(self.peers) + 1)
+            return jsonify(snapshot.to_dict()), 200
 
         # ---- REST API ----
 

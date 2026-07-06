@@ -1,12 +1,12 @@
 {
-  "name": "PyCoin",
-  "ticker": "PYC",
-  "description": "An open-source proof-of-work cryptocurrency built on Python.",
+  "name": "Enigma",
+  "ticker": "ENIG",
+  "description": "A quantum-ready, AI-native compute currency. ENIG rewards verifiable proof-of-work capacity and prices settlement by live compute supply vs demand.",
   "website": "",
   "whitepaper": "WHITEPAPER.md",
-  "source_code": "https://github.com/chris-dewitt/CursorExperiment1",
-  "consensus": "Proof of Work (SHA-256)",
-  "curve": "secp256k1",
+  "source_code": "https://github.com/chris-dewitt/cursorexperiment1",
+  "consensus": "Proof of Work (double SHA-256)",
+  "curve": "secp256k1 (v1; post-quantum migration path via header version 2)",
   "address_format": "Base58Check (version byte 0x00, identical to Bitcoin P2PKH)",
   "hd_wallet": "BIP39 / BIP32 master key derivation",
   "total_supply": 21000000,
@@ -16,10 +16,14 @@
   "difficulty_adjustment_blocks": 10,
   "genesis_block_date": null,
   "decimal_places": 8,
-  "smallest_unit": "satoshi",
+  "smallest_unit": "qubit",
+  "compute_market": {
+    "description": "Live demand/supply ratio from mempool pressure and network hashrate",
+    "endpoints": ["GET /compute/stats", "GET /compute", "RPC getcomputeinfo"]
+  },
   "api": {
     "rest": "HTTP REST on port 5000",
-    "rpc": "JSON-RPC 2.0 at POST /rpc (Bitcoin-compatible subset)"
+    "rpc": "JSON-RPC 2.0 at POST /rpc (Bitcoin-compatible subset + getcomputeinfo)"
   },
   "networks": {
     "mainnet": {"port": 5000},

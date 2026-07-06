@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Transaction — PyCoin{% endblock %}
+{% block title %}Transaction — Enigma{% endblock %}
 {% block content %}
 
 <nav aria-label="breadcrumb" class="mb-3">
@@ -21,15 +21,15 @@
       ("Timestamp", timestamp | int),
       ("Sender", sender),
       ("Recipient", recipient),
-      ("Amount", amount ~ " PYC"),
-      ("Fee", fee ~ " PYC"),
+      ("Amount", amount ~ " ENIG"),
+      ("Fee", fee ~ " ENIG"),
     ] %}
     {% for label, value in fields %}
     <div class="col-md-2 text-secondary small">{{ label }}</div>
-    <div class="col-md-10" style="{% if label in ('Tx ID','Block Hash','Sender') %}font-family:monospace;font-size:.85em;word-break:break-all;color:#58a6ff;{% endif %}">
+    <div class="col-md-10" style="{% if label in ('Tx ID','Block Hash','Sender') %}font-family:monospace;font-size:.85em;word-break:break-all;color:var(--enigma-cyan);{% endif %}">
       {% if label == "Block Hash" %}<a class="hash" href="/block/{{ value }}">{{ value }}</a>
       {% elif label == "Recipient" %}<a class="hash" href="/address/{{ value }}">{{ value }}</a>
-      {% elif label == "Sender" and value == "COINBASE" %}<span class="badge bg-warning text-dark">Coinbase</span>
+      {% elif label == "Sender" and value == "COINBASE" %}<span class="badge" style="background:var(--enigma-purple);">Coinbase</span>
       {% else %}{{ value }}{% endif %}
     </div>
     {% endfor %}

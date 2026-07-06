@@ -1,109 +1,164 @@
-# PyCoin Whitepaper
+# Enigma Whitepaper
 
-**Version 1.0 — Draft**
+**Version 2.0 — Compute Currency**
 
 ---
 
 ## Abstract
 
-PyCoin (PYC) is a peer-to-peer electronic cash system implementing the core design of Bitcoin in Python. It uses Proof-of-Work consensus, secp256k1 ECDSA cryptography, BIP39 mnemonic wallet recovery, and an adaptive-difficulty mining schedule. The total supply is capped at **21,000,000 PYC**, mirroring Bitcoin's scarcity model. This document describes the protocol, cryptographic primitives, economic model, and node API.
+Enigma (ENIG) is a quantum-ready, AI-native compute currency. Proof-of-Work mining represents verifiable compute capacity on the network; the mempool and fee market represent settlement demand. A live **compute supply/demand ratio** drives dynamic fee guidance — the economic core of Enigma.
+
+Built on double SHA-256 consensus, secp256k1 ECDSA signatures, BIP39 wallet recovery, and a 21M ENIG supply cap with Bitcoin-style halving, Enigma is designed for the era where compute is the scarcest resource.
 
 ---
 
 ## 1. Introduction
 
-PyCoin is an educational and production-capable cryptocurrency designed to be fully transparent, auditable, and compatible with existing tooling through a Bitcoin-compatible JSON-RPC API. Unlike many altcoins that fork an existing codebase, PyCoin is implemented from first principles, making every design decision explicit.
+The AI revolution has made compute the new oil. GPU clusters, inference farms, and distributed proof-of-work networks all compete for the same finite resource: verifiable computational capacity.
+
+Enigma answers a simple question: **what is compute worth right now?**
+
+Unlike static-fee blockchains, Enigma continuously measures:
+
+1. **Compute supply** — network hashrate implied by PoW difficulty and peer mesh size
+2. **Compute demand** — mempool congestion, pending transaction value, and fee urgency
+3. **Market equilibrium** — a demand/supply ratio that drives suggested fees and network status
+
+Enigma is implemented from first principles in Python — fully auditable, transparent, and compatible with Bitcoin-style JSON-RPC tooling.
 
 ---
 
 ## 2. Cryptographic Foundations
 
-### 2.1 Digital Signatures
+### 2.1 Digital Signatures (Classical + Quantum Path)
 
-All transactions are signed using **ECDSA over the secp256k1 elliptic curve** — the same curve used by Bitcoin and Ethereum. Each wallet holds:
+All transactions are signed with **ECDSA over secp256k1** — battle-tested, Bitcoin-compatible cryptography.
 
-- A **256-bit private key** (randomly generated or derived from a BIP39 mnemonic)
-- A **33-byte compressed public key** (SEC X9.62 compressed point)
-- A **Bitcoin-style address** derived as:
+Block headers include a **`version` field**:
+
+| Version | Scheme |
+|---------|--------|
+| **1** (current) | secp256k1 ECDSA |
+| **2** (reserved) | Post-quantum signature migration (ML-DSA / SPHINCS+ path) |
+
+This versioned header enables a coordinated hard-fork to post-quantum signatures without breaking address compatibility planning.
+
+### 2.2 Address Derivation
 
 ```
 address = Base58Check(0x00 || RIPEMD160(SHA256(compressed_pubkey)))
 ```
 
-### 2.2 Transaction Signing
+Identical to Bitcoin P2PKH — hardware wallet compatible.
 
-The signed payload is the JSON-serialised (sorted keys) object:
+### 2.3 Block Hashing — Double SHA-256
 
-```json
-{
-  "sender": "<public_key_hex>",
-  "recipient": "<address>",
-  "amount": <float>,
-  "fee": <float>,
-  "timestamp": <unix_float>
-}
+Enigma uses **double SHA-256** (Bitcoin-style) for block headers:
+
+```
+block_hash = SHA256(SHA256(header_bytes))
 ```
 
-The DER-encoded ECDSA signature over SHA-256 of this payload is embedded in the transaction.
+This provides stronger collision resistance than single-round hashing and aligns with industry-standard PoW security assumptions.
 
-### 2.3 Block Hashing
+A valid hash must have at least `difficulty` leading zero hex digits.
 
-Block headers are hashed with **SHA-256**. A valid hash must have at least `difficulty` leading zero hex digits.
+### 2.4 Wallet Encryption
+
+Wallet files use **Fernet (AES-128-CBC + HMAC-SHA256)** with keys derived via **PBKDF2-HMAC-SHA256 at 600,000 iterations** — exceeding OWASP 2023 recommendations for password-based key derivation.
 
 ---
 
-## 3. Wallet System
+## 3. The Compute Market
 
-### 3.1 BIP39 Mnemonic Recovery
+### 3.1 Supply — Verifiable Compute Capacity
 
-PyCoin wallets support **BIP39** 12-word mnemonic phrases (128-bit entropy). Seed derivation follows the BIP39 standard:
-
-```
-seed = PBKDF2-HMAC-SHA512(mnemonic, "mnemonic" + passphrase, 2048, 64 bytes)
-```
-
-The master private key is derived using BIP32 HMAC-SHA512:
+Network compute supply is estimated from:
 
 ```
-I = HMAC-SHA512(key="Bitcoin seed", data=seed)
-private_key = I[0:32]   # must be in range [1, secp256k1_order - 1]
+hashrate ≈ (difficulty × 16⁴ × active_peers) / target_block_time
+supply_score = hashrate / 1,000,000
 ```
 
-### 3.2 Encrypted Key Storage
+PoW difficulty scales with actual mining effort. Peer count scales with distributed compute mesh size. Together they approximate verifiable compute capacity on the network.
 
-Wallet files are stored as JSON. When a password is provided, the key material is encrypted with **Fernet (AES-128-CBC + HMAC-SHA256)** using a key derived via **PBKDF2-HMAC-SHA256** (480,000 iterations).
+### 3.2 Demand — Settlement Pressure
+
+Compute demand aggregates:
+
+```
+demand_score = (mempool_size × 2) + (pending_value × 5) + (pending_fees × 200)
+```
+
+Mempool congestion, economic value awaiting settlement, and fee urgency all signal demand for block-space — the scarce compute resource miners provide.
+
+### 3.3 Equilibrium — Dynamic Fee Guidance
+
+```
+ratio = demand_score / supply_score
+```
+
+| Ratio | Status | Suggested Fee |
+|-------|--------|---------------|
+| < 0.6 | **Surplus** | 0.0001 ENIG |
+| 0.6 – 1.4 | **Balanced** | 0.001 ENIG |
+| > 1.4 | **Constrained** | 0.001 × ratio (capped) |
+
+This model is exposed via:
+
+- `GET /compute/stats` — JSON snapshot
+- `GET /compute` — visual dashboard
+- RPC `getcomputeinfo` — full market data
+- RPC `getmininginfo` — includes compute metrics
+- RPC `getblockchaininfo` — includes `compute_market` object
+
+### 3.4 AI & Quantum Positioning
+
+Enigma's compute market is the settlement layer for a future **AI inference mesh**:
+
+- **Phase 1 (now):** PoW proves compute; mempool prices settlement
+- **Phase 2:** Provider registration with attested GPU/TPU capacity
+- **Phase 3:** AI job routing with ENIG micropayments per inference token
+- **Phase 4:** Post-quantum signature migration via header version 2
+
+The economic primitives — supply measurement, demand pricing, equilibrium fees — are designed to extend from block settlement to AI compute markets without redesigning the token.
 
 ---
 
-## 4. Transactions
+## 4. Wallet System
 
-Each transaction specifies:
+### 4.1 BIP39 Mnemonic Recovery
+
+12-word BIP39 phrases (128-bit entropy). Master key derivation via BIP32 HMAC-SHA512 with the standard `"Bitcoin seed"` domain separator.
+
+### 4.2 Encrypted Key Storage
+
+JSON wallet files with optional Fernet encryption. 600,000-iteration PBKDF2 key derivation.
+
+---
+
+## 5. Transactions
 
 | Field | Description |
 |---|---|
-| `sender` | Sender's compressed public key (hex), or `"COINBASE"` |
-| `recipient` | Recipient's base58check address |
-| `amount` | Coins to transfer (float, > 0) |
-| `fee` | Miner tip (float, ≥ 0) |
+| `sender` | Compressed public key (hex), or `"COINBASE"` |
+| `recipient` | Base58Check address |
+| `amount` | ENIG to transfer (> 0) |
+| `fee` | Miner tip (≥ 0) — priced by compute market |
 | `timestamp` | Unix timestamp |
-| `signature` | DER ECDSA signature over the canonical payload |
-
-**Validation rules:**
-1. Amount must be positive; fee must be non-negative.
-2. Signature must verify against `sender` public key.
-3. Sender's on-chain balance must cover `amount + fee`.
-4. Coinbase transactions have exactly `"COINBASE"` as sender and are only created by miners.
+| `signature` | DER ECDSA over canonical JSON payload |
 
 **Transaction ID:** `SHA256(payload_bytes || signature_hex)`
 
 ---
 
-## 5. Blocks
+## 6. Blocks
 
-### 5.1 Block Header
+### 6.1 Block Header
 
 ```json
 {
+  "version": 1,
   "index": <int>,
   "previous_hash": "<hex64>",
   "timestamp": <float>,
@@ -113,120 +168,76 @@ Each transaction specifies:
 }
 ```
 
-The block hash is `SHA256(JSON(header, sorted_keys))`.
+Block hash: `SHA256(SHA256(JSON(header, sorted_keys)))`.
 
-### 5.2 Proof of Work
+### 6.2 Proof of Work
 
-A block is valid if its hash begins with at least `difficulty` hex zeros (i.e., `hash < 16^(64-difficulty)`). Miners increment the nonce until the condition is met.
+Miners increment nonce until `hash` begins with `difficulty` hex zeros. Mining proves compute capacity and earns ENIG rewards.
 
-### 5.3 Difficulty Adjustment
+### 6.3 Difficulty Adjustment
 
-Every 10 blocks, the node compares the actual time elapsed over those blocks to the 60-second target:
-
-- Actual < 30 s → difficulty + 1
-- Actual > 120 s → difficulty − 1 (minimum 1)
+Every 10 blocks, compare actual block time to the 60-second target. Adjust difficulty ±1 to maintain equilibrium between compute supply and network demand for blocks.
 
 ---
 
-## 6. Supply & Economics
+## 7. Supply & Economics
 
 | Parameter | Value |
 |---|---|
-| Maximum supply | 21,000,000 PYC |
-| Initial block reward | 50 PYC |
+| Maximum supply | 21,000,000 ENIG |
+| Initial block reward | 50 ENIG |
 | Halving interval | Every 210,000 blocks |
 | Block target | 60 seconds |
-| Transaction fees | Market-determined, paid to miner |
-
-Block reward at height `h`:
+| Smallest unit | qubit (10⁻⁸ ENIG) |
+| Transaction fees | Market-determined via compute ratio |
 
 ```
-reward = 50 / 2^floor(h / 210_000)   for h < 210_000 * 64
-reward = 0                             for h ≥ 210_000 * 64
+reward = 50 / 2^floor(h / 210_000)   for h < 210_000 × 64
+reward = 0                           for h ≥ 210_000 × 64
 ```
 
-Total supply converges to exactly **21,000,000 PYC** (geometric series: 50 × 210,000 × (1 + 0.5 + 0.25 + …) = 21,000,000).
+Scarcity meets compute: ENIG rewards those who prove capacity while the compute market prices access to it.
 
 ---
 
-## 7. Peer-to-Peer Network
+## 8. Peer-to-Peer Network
 
-Each node exposes an HTTP API. Peers are discovered by:
-
-1. Manual registration (`POST /peers/register`).
-2. The `--peer` CLI flag on startup.
-
-**Consensus:** When a node receives a block that doesn't fit its current chain, or on startup, it performs **longest-chain consensus**: it queries all peers' chains and adopts the longest valid one.
+HTTP-based P2P with longest-chain consensus. Peers register via `POST /peers/register` or `--peer` CLI flag. Each peer contributes to the compute supply score.
 
 ---
 
-## 8. Node API
+## 9. Node API
 
-### 8.1 REST Endpoints
+### 9.1 REST Endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/chain` | Full serialised blockchain |
-| GET | `/pending` | Pending transactions (mempool) |
-| GET | `/balance/<address>` | Address balance |
-| GET | `/wallet` | Node wallet info |
-| GET | `/peers` | Registered peers |
-| POST | `/transaction/new` | Submit a signed transaction |
+| GET | `/chain` | Full blockchain |
+| GET | `/compute/stats` | Compute market JSON |
+| GET | `/compute` | Compute dashboard |
 | POST | `/mine` | Mine pending transactions |
-| POST | `/peers/register` | Register a peer |
+| POST | `/transaction/new` | Submit signed transaction |
 
-### 8.2 JSON-RPC 2.0 — `POST /rpc`
+### 9.2 JSON-RPC 2.0
 
-Bitcoin-compatible subset. Request format:
+Bitcoin-compatible subset plus Enigma extensions:
 
-```json
-{"jsonrpc":"2.0","method":"getblockchaininfo","params":[],"id":1}
-```
-
-Supported methods: `getblockchaininfo`, `getblockcount`, `getblockhash`, `getblock`, `gettransaction`, `getbalance`, `sendrawtransaction`, `getmininginfo`, `getnewaddress`.
-
----
-
-## 9. Exchange Integration
-
-### 9.1 Technical Requirements Checklist
-
-- [x] secp256k1 ECDSA signatures
-- [x] Bitcoin-style base58check addresses
-- [x] BIP39 mnemonic wallet recovery
-- [x] JSON-RPC 2.0 API (Bitcoin-compatible subset)
-- [x] Deterministic transaction IDs
-- [x] Block explorer web interface
-- [x] Docker deployment
-- [x] Documented coin specification (`coin_spec.json`)
-- [ ] Mainnet genesis block (requires community launch)
-- [ ] Independent security audit
-- [ ] Liquidity / market maker arrangement
-
-### 9.2 Listing Applications
-
-- **Coinbase Asset Hub:** https://www.coinbase.com/en-gb/blog/how-coinbase-lists-assets
-- **Kraken Listing Application:** Contact Kraken's asset listing team via their official website
-- **CoinGecko / CoinMarketCap:** List for tracking (required before exchange listing for most exchanges)
-
-### 9.3 Exchange Wallet Integration
-
-Exchanges typically run a full node and use the JSON-RPC API to:
-
-1. Generate deposit addresses: `getnewaddress`
-2. Monitor incoming transactions: poll `getblock` / `gettransaction`
-3. Broadcast withdrawals: `sendrawtransaction`
-4. Check confirmation count: `gettransaction` → `confirmations`
+- `getcomputeinfo` — full compute market snapshot
+- `getblockchaininfo` — includes `compute_market` object
+- `getmininginfo` — includes supply, demand, ratio, suggested fee
 
 ---
 
 ## 10. Security Considerations
 
-- Private keys never leave the wallet file or the signing process.
-- Wallet encryption uses PBKDF2 (480,000 iterations) + Fernet AES.
-- Block validity is checked before appending to the chain.
-- Double-spend protection: the balance check in `add_transaction` scans the full on-chain history.
-- **Known limitations (for production hardening):** HTTP transport (should be TLS), no mempool eviction policy, simple balance model (no UTXO set — O(n) scan), no Bloom filter for SPV.
+- **Double SHA-256** block hashing for collision resistance
+- **600,000-iteration PBKDF2** wallet encryption
+- **Versioned block headers** for post-quantum migration path
+- Private keys never leave the signing process
+- Full chain validation before block append
+- Double-spend protection via balance scanning
+
+**Known limitations:** HTTP transport (TLS recommended for production), O(n) balance model (UTXO set planned), no SPV light clients yet.
 
 ---
 
@@ -234,20 +245,22 @@ Exchanges typically run a full node and use the JSON-RPC API to:
 
 | Phase | Milestone |
 |---|---|
-| 1 | Core protocol + block explorer (complete) |
-| 2 | Mainnet genesis launch + seed nodes |
+| 1 | Core protocol + compute market + explorer ✓ |
+| 2 | Mainnet genesis + seed node mesh |
 | 3 | TLS + authenticated P2P transport |
-| 4 | UTXO set for O(1) balance queries |
-| 5 | SPV / light-client support |
-| 6 | Smart contract layer (optional) |
+| 4 | AI inference provider registration |
+| 5 | Post-quantum signature migration (header v2) |
+| 6 | UTXO set + SPV light clients |
 | 7 | Exchange listings |
 
 ---
 
 ## 12. Conclusion
 
-PyCoin demonstrates that a fully functional, cryptographically sound cryptocurrency can be built transparently. The 21M supply cap and halving schedule establish provable scarcity; BIP39 wallet support ensures compatibility with hardware wallets and standard tooling; and the JSON-RPC API enables straightforward exchange integration.
+Enigma is compute currency for the AI age. Proof-of-Work proves capacity. The mempool signals demand. The ratio prices access. Double SHA-256 secures the chain. A quantum migration path protects the future. And 21 million ENIG ensures scarcity meets silicon.
+
+**Supply meets demand. Compute meets currency. Enigma.**
 
 ---
 
-*This whitepaper is a living document. Contributions and security disclosures are welcome via the GitHub repository.*
+*This whitepaper is a living document. Security disclosures and contributions welcome via GitHub.*

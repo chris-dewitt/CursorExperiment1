@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Compute Market — Enigma{% endblock %}
+{% block content %}
+
+<h5 class="mb-1">Compute Market</h5>
+<p class="text-secondary mb-4">Live supply vs demand — ENIG prices settlement by verifiable compute capacity.</p>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="compute-card stat-card p-4 text-center">
+      <div class="text-secondary small text-uppercase mb-1">Market Status</div>
+      <div class="fs-2 fw-bold status-{{ market.status }}">{{ market.status | upper }}</div>
+      <div class="text-secondary small mt-2">{{ market.tagline }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card p-4 text-center">
+      <div class="text-secondary small text-uppercase mb-1">Demand / Supply</div>
+      <div class="fs-2 fw-bold">{{ market.ratio }}×</div>
+      <div class="text-secondary small mt-2">Above 1.4× = constrained network</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card p-4 text-center">
+      <div class="text-secondary small text-uppercase mb-1">Suggested Fee</div>
+      <div class="fs-2 fw-bold">{{ market.suggested_fee }} <span class="fs-6 text-secondary">ENIG</span></div>
+      <div class="text-secondary small mt-2">Dynamic fee guidance from mempool pressure</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card p-3">
+      <div class="text-secondary small">Compute Supply</div>
+      <div class="fs-4 fw-bold">{{ market.supply_score }}</div>
+      <div class="text-secondary" style="font-size:.75rem;">PoW capacity score</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card p-3">
+      <div class="text-secondary small">Compute Demand</div>
+      <div class="fs-4 fw-bold">{{ market.demand_score }}</div>
+      <div class="text-secondary" style="font-size:.75rem;">Mempool + fee urgency</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card p-3">
+      <div class="text-secondary small">Hashrate Est.</div>
+      <div class="fs-5 fw-bold">{{ "{:,.0f}".format(market.network_hashrate_estimate) }}</div>
+      <div class="text-secondary" style="font-size:.75rem;">H/s (network)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card p-3">
+      <div class="text-secondary small">Active Peers</div>
+      <div class="fs-4 fw-bold">{{ market.active_peers }}</div>
+      <div class="text-secondary" style="font-size:.75rem;">{{ market.mempool_size }} pending txs</div>
+    </div>
+  </div>
+</div>
+
+<div class="stat-card p-4">
+  <h6 class="text-secondary mb-3">How Enigma Compute Pricing Works</h6>
+  <div class="row g-3 text-secondary small">
+    <div class="col-md-4">
+      <strong style="color:var(--enigma-cyan);">Supply</strong><br>
+      Proof-of-Work difficulty × peer mesh size estimates verifiable compute capacity on the network.
+    </div>
+    <div class="col-md-4">
+      <strong style="color:var(--enigma-purple);">Demand</strong><br>
+      Mempool size, pending transaction value, and fee pressure represent settlement demand.
+    </div>
+    <div class="col-md-4">
+      <strong style="color:var(--enigma-violet);">Equilibrium</strong><br>
+      The demand/supply ratio drives dynamic fee suggestions — the core of Enigma's compute economy.
+    </div>
+  </div>
+</div>
+{% endblock %}

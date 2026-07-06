@@ -1,7 +1,7 @@
 import os
 import tempfile
 import pytest
-from pycoin.wallet import Wallet, verify_signature
+from enigma.wallet import Wallet, verify_signature
 
 
 def test_wallet_generates_address():
@@ -12,7 +12,7 @@ def test_wallet_generates_address():
 
 def test_wallet_sign_verify():
     w = Wallet()
-    data = b"hello pycoin"
+    data = b"hello enigma"
     sig = w.sign(data)
     assert verify_signature(w.public_key_hex, data, sig)
 

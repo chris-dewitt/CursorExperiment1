@@ -1,5 +1,8 @@
 """
-Block and Blockchain: Proof-of-Work chain with supply cap and halving schedule.
+Block and Blockchain: Enigma Proof-of-Work chain with supply cap and halving.
+
+Block headers use double SHA-256 (Bitcoin-style) and a version field reserved
+for post-quantum signature migration.
 """
 
 import hashlib
@@ -11,13 +14,14 @@ from .transaction import Transaction
 from .wallet import address_from_public_key_hex
 
 # -----------------------------------------------------------------------
-# Coin economics (mirrors Bitcoin's supply model)
+# Enigma economics — compute-backed scarcity (Bitcoin-style halving)
 # -----------------------------------------------------------------------
-TOTAL_SUPPLY = 21_000_000.0       # maximum coins ever
-INITIAL_REWARD = 50.0             # coins per block at genesis
+TOTAL_SUPPLY = 21_000_000.0       # maximum ENIG ever
+INITIAL_REWARD = 50.0             # ENIG per block at genesis
 HALVING_INTERVAL = 210_000        # blocks between halvings
 MINING_REWARD = INITIAL_REWARD    # kept as alias for tests / external code
 
+HEADER_VERSION = 1                # v1 = secp256k1; v2 reserved for PQC
 INITIAL_DIFFICULTY = 4
 DIFFICULTY_ADJUSTMENT = 10        # adjust every N blocks
 TARGET_BLOCK_TIME = 60            # seconds per block target
@@ -58,6 +62,7 @@ class Block:
         tx_ids = [tx.tx_id() for tx in self.transactions]
         return json.dumps(
             {
+                "version": HEADER_VERSION,
                 "index": self.index,
                 "previous_hash": self.previous_hash,
                 "timestamp": self.timestamp,
@@ -69,7 +74,8 @@ class Block:
         )
 
     def _compute_hash(self) -> str:
-        return hashlib.sha256(self._header().encode()).hexdigest()
+        header_bytes = self._header().encode()
+        return hashlib.sha256(hashlib.sha256(header_bytes).digest()).hexdigest()
 
     def _meets_difficulty(self, h: str) -> bool:
         return h.startswith("0" * self.difficulty)
